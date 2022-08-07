@@ -3,17 +3,22 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut,
+  getIdToken,
 } from "firebase/auth";
 import { provider, auth } from "./firebase";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import development from "./config";
+import axios from "axios";
 
 const App = () => {
+  const [user, setUser] = useState<any>(null);
+
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        console.log(user);
+        setUser(user);
       } else {
-        console.log("Not login");
+        setUser(null);
       }
     });
   }, []);
@@ -21,9 +26,7 @@ const App = () => {
   const handleLogin = () => {
     signInWithPopup(auth, provider)
       .then((result) => {
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        console.log(credential?.accessToken);
-        console.log(result.user);
+        GoogleAuthProvider.credentialFromResult(result);
       })
       .catch((error) => {
         console.log(error);
@@ -44,6 +47,30 @@ const App = () => {
     <div className="App">
       <button onClick={handleLogin}>LOGIN</button>
       <button onClick={handleLogout}>LOGOUT</button>
+      <button
+        onClick={async () => {
+          const { currentUser } = auth;
+          if (currentUser) {
+            const token = await getIdToken(currentUser, true);
+            axios
+              .post(development.api_url, { token: token })
+              .then((res) => {
+                if (res.data.ok) {
+                  console.log("OK");
+                } else {
+                  console.log("NO");
+                }
+              })
+              .catch((err) => {
+                console.log("NO");
+              });
+          }
+        }}
+      >
+        VRRIFY
+      </button>
+      <p>{user?.displayName}</p>
+      <p>{user?.email}</p>
     </div>
   );
 };
